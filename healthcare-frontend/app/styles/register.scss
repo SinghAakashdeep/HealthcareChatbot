@@ -1,0 +1,103 @@
+/* PAGE WRAPPER (optional but recommended) */
+.auth-root {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  z-index: 10;
+}
+
+/* REGISTER FORM CARD */
+.auth-card {
+  width: 380px;
+  padding: 32px;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  color: white;
+
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+  box-sizing: border-box;
+}
+
+/* TITLE */
+.auth-card h1 {
+  font-size: 1.6rem;
+  font-weight: 600;
+  margin-bottom: 6px;
+  text-align: center;
+}
+
+/* LABELS */
+.auth-card label {
+  font-size: 0.85rem;
+  color: #cfcfcf;
+}
+
+/* INPUTS + SELECT */
+.auth-card input,
+.auth-card select {
+  width: 100%;
+  margin-top: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: white;
+  font-size: 0.9rem;
+  outline: none;
+  box-sizing: border-box;
+}
+
+/* FOCUS */
+.auth-card input:focus,
+.auth-card select:focus {
+  border-color: white;
+}
+
+/* SELECT OPTIONS */
+.auth-card option {
+  background-color: #0b0b0b;
+  color: white;
+}
+
+/* ERROR MESSAGE */
+.auth-card .error {
+  font-size: 0.85rem;
+  color: #ffbcbc;
+  text-align: center;
+  margin-top: 4px;
+}
+
+/* SUBMIT BUTTON */
+.auth-card button[type="submit"] {
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  font-size: 0.95rem;
+  font-weight: 600;
+  background: white;
+  color: black;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* HOVER */
+.auth-card button[type="submit"]:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(255, 255, 255, 0.25);
+}
+
+/* DISABLED */
+.auth-card button[type="submit"]:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

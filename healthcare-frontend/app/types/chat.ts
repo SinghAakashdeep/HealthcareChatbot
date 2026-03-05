@@ -1,0 +1,3 @@
+type DoctorChatResponse = {
+  answer: string;
+};

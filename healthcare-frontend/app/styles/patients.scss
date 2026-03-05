@@ -1,0 +1,89 @@
+/* ROOT */
+.patient-dashboard-root {
+  min-height: 100vh;
+  padding: 3rem;
+  color: #eaeaea;
+  background: #0b0b0b;
+  box-sizing: border-box;
+}
+
+/* HEADER */
+.patient-header {
+  margin-bottom: 2.5rem;
+}
+
+.patient-header h1 {
+  font-size: 2.2rem;
+  margin-bottom: 0.4rem;
+  font-weight: 600;
+}
+
+.patient-header .muted {
+  color: #9a9a9a;
+  font-size: 0.95rem;
+}
+
+/* GRID LAYOUT */
+.patient-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.25fr;
+  gap: 24px;
+  align-items: stretch;
+}
+
+/* CARD BASE */
+.patient-card {
+  background: linear-gradient(145deg, #141414, #0e0e0e);
+  border-radius: 18px;
+  padding: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  min-height: 420px;
+}
+
+/* CARD HEADERS */
+.patient-card h2 {
+  font-size: 1.15rem;
+  margin-bottom: 14px;
+  font-weight: 500;
+}
+
+/* CONTENT PLACEHOLDERS */
+.placeholder,
+.chat-placeholder {
+  flex: 1;
+  border-radius: 14px;
+  background: linear-gradient(160deg, #111, #0c0c0c);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #7a7a7a;
+  font-size: 0.95rem;
+  text-align: center;
+  padding: 1.5rem;
+  line-height: 1.4;
+}
+
+/* CHAT CARD EMPHASIS */
+.chat-card {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 12px 32px rgba(0, 0, 0, 0.65);
+}
+
+/* RESPONSIVE */
+@media (max-width: 900px) {
+  .patient-dashboard-root {
+    padding: 2rem 1.5rem;
+  }
+
+  .patient-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .patient-card {
+    min-height: 360px;
+  }
+}
