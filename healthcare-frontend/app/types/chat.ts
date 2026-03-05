@@ -1,3 +1,0 @@
-type DoctorChatResponse = {
-  answer: string;
-};
