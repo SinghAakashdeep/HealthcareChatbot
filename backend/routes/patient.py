@@ -6,8 +6,6 @@ from database import get_db
 from models import Patient, Visit, Prescription, Vital, User
 from auth import get_current_user, verify_password, hash_password
 from schemas import PatientSettingsUpdate, ChangePasswordRequest
-from services.storage import upload_profile_image
-from services.assistant import generate_patient_response
 
 router = APIRouter(prefix="/patient", tags=["Patient"])
 
@@ -19,7 +17,7 @@ router = APIRouter(prefix="/patient", tags=["Patient"])
 @router.get("/records")
 def get_patient_records(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user=Depends(get_current_user)
 ):
     patient = db.query(Patient).filter(
         Patient.user_id == current_user.id
@@ -85,7 +83,7 @@ def get_patient_records(
 @router.get("/settings")
 def get_settings(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user=Depends(get_current_user)
 ):
     patient = db.query(Patient).filter(
         Patient.user_id == current_user.id
@@ -108,7 +106,7 @@ def get_settings(
 def update_settings(
     data: PatientSettingsUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user=Depends(get_current_user)
 ):
     patient = db.query(Patient).filter(
         Patient.user_id == current_user.id
@@ -143,7 +141,7 @@ def update_settings(
 def change_password(
     data: ChangePasswordRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user=Depends(get_current_user)
 ):
     if not verify_password(data.old_password, current_user.password):
         raise HTTPException(status_code=400, detail="Old password incorrect")
@@ -158,9 +156,11 @@ def change_password(
 def upload_profile_photo(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user=Depends(get_current_user)
 ):
     try:
+        from services.storage import upload_profile_image
+
         url = upload_profile_image(file.file)
     except Exception:
         raise HTTPException(status_code=500, detail="Upload failed")
@@ -183,14 +183,22 @@ class ChatRequest(BaseModel):
 def patient_assistant(
     data: ChatRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user=Depends(get_current_user),
 ):
+    from services.assistant import generate_patient_response
+
+    if current_user.role != "patient":
+        raise HTTPException(status_code=403, detail="Only patients can use the assistant")
+
     patient = db.query(Patient).filter(
         Patient.user_id == current_user.id
     ).first()
 
     if not patient:
-        raise HTTPException(status_code=404, detail="Patient not found")
+        patient = Patient(user_id=current_user.id)
+        db.add(patient)
+        db.commit()
+        db.refresh(patient)
 
     result = generate_patient_response(
         db=db,

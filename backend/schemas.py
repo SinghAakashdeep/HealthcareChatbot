@@ -1,16 +1,16 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 from typing import Optional
 
 
 class RegisterRequest(BaseModel):
     name: str
-    email: EmailStr
+    email: str
     password: str
     role: str
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email: str
     password: str
 
 
@@ -20,7 +20,7 @@ class LoginRequest(BaseModel):
 
 class PatientSettingsResponse(BaseModel):
     name: str
-    email: EmailStr
+    email: str
     profile_photo: Optional[str]
 
     height_cm: Optional[int]

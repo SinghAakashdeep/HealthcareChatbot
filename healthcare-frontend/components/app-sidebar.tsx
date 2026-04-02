@@ -9,6 +9,7 @@ import {
   FileText,
   Bot,
   Users,
+  Calendar,
 } from "lucide-react"
 
 import {
@@ -27,131 +28,125 @@ import Link from "next/link"
 export function AppSidebar() {
   const pathname = usePathname()
   const router = useRouter()
+  const isDoctor = pathname.startsWith("/doctor")
 
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null)
-  const [dropdownOpen, setDropdownOpen] = useState(false)
 
   useEffect(() => {
+    if (isDoctor) return
+
     async function fetchProfile() {
       try {
-        const res = await apiRequest("/patient/settings", undefined, "GET")
-        if (res?.profile_photo) {
-          setProfilePhoto(res.profile_photo)
-        }
-      } catch (err) {
+        const res = await apiRequest<{ profile_photo?: string }>("/patient/settings", undefined, "GET")
+        if (res) setProfilePhoto(res.profile_photo || null)
+      } catch {
         console.error("Failed to load profile photo")
       }
     }
 
     fetchProfile()
-  }, [])
+  }, [isDoctor])
 
-  const isDoctor = pathname.startsWith("/doctor")
+  const displayedProfilePhoto = isDoctor ? null : profilePhoto
 
-  const doctorItems = [
-    { title: "Dashboard", url: "/doctor", icon: LayoutDashboard },
-    { title: "Patients", url: "/doctor/patients", icon: Users },
-    { title: "Records", url: "/doctor/records", icon: FileText },
-    { title: "AI Assistant", url: "/doctor/assistant", icon: Bot },
-  ]
-
-  const patientItems = [
-    { title: "Dashboard", url: "/patient", icon: LayoutDashboard },
-    { title: "My Records", url: "/patient/records", icon: FileText },
-    { title: "AI Assistant", url: "/patient/assistant", icon: Bot },
-  ]
-
-  const items = isDoctor ? doctorItems : patientItems
-  const panelTitle = isDoctor ? "Explorer" : "Explorer"
+  const items = isDoctor
+    ? [
+        { title: "Dashboard", url: "/doctor", icon: LayoutDashboard },
+        { title: "Patients", url: "/doctor/patients", icon: Users },
+        { title: "Records", url: "/doctor/records", icon: FileText },
+        { title: "AI Assistant", url: "/doctor/assistant", icon: Bot },
+      ]
+    : [
+        { title: "Dashboard", url: "/patient", icon: LayoutDashboard },
+        { title: "Appointments", url: "/patient/appointments", icon: Calendar },
+        { title: "My Records", url: "/patient/records", icon: FileText },
+        { title: "AI Assistant", url: "/patient/assistant", icon: Bot },
+      ]
 
   return (
     <Sidebar
       collapsible="icon"
-      className="border-r border-slate-800 bg-[#0F172A] text-slate-200"
+      className="border-r border-sidebar-border bg-sidebar text-sidebar-foreground"
     >
-      <SidebarContent>
-        {/* Header */}
-        <div className="flex h-14 items-center justify-center border-b border-slate-800">
-          <span className="font-semibold text-sm text-slate-300">
-            {panelTitle}
-          </span>
+      <SidebarContent className="flex flex-col justify-between h-full">
+
+        {/* TOP SECTION */}
+        <div>
+
+          {/* Header */}
+          <div className="flex h-18 flex-col justify-center gap-1 border-b border-sidebar-border px-4 py-4">
+            <span className="font-heading text-sm font-semibold tracking-[0.08em] text-sky-200/75">
+              CARESPACE
+            </span>
+            <span className="text-sm font-medium tracking-[-0.01em] text-sidebar-foreground/90">
+              {isDoctor ? "Clinician Workspace" : "Patient Workspace"}
+            </span>
+          </div>
+
+          {/* Menu */}
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu className="px-2 py-3 space-y-1">
+
+                {items.map((item) => {
+                  const active = pathname === item.url
+
+                  return (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={active}
+                        className="px-3 py-2 rounded-md text-[0.95rem] font-medium tracking-[-0.01em]"
+                      >
+                        <Link href={item.url} className="flex items-center gap-3">
+                          <item.icon className="h-4 w-4" />
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  )
+                })}
+
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+
         </div>
 
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {items.map((item) => {
-                const active = pathname === item.url
+        {/* BOTTOM PROFILE */}
+        <SidebarFooter>
+          <div className="flex items-center justify-between px-4 py-3 border-t border-sidebar-border">
 
-                return (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      asChild
-                      data-active={active}
-                      className="
-                        text-slate-400
-                        hover:text-white
-                        hover:bg-slate-800
-                        data-[active=true]:text-white
-                        data-[active=true]:bg-slate-800
-                        transition
-                      "
-                    >
-                      <Link href={item.url}>
-                        <item.icon className="h-4 w-4" />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
+            <div className="flex items-center gap-3">
+              {displayedProfilePhoto ? (
+                <img
+                  src={displayedProfilePhoto}
+                  alt="Profile photo"
+                  className="h-8 w-8 rounded-full object-cover"
+                />
+              ) : (
+                <div className="h-8 w-8 rounded-full bg-sidebar-accent" />
+              )}
 
-      {/* Profile Footer */}
-      <SidebarFooter>
-        <div className="relative flex justify-center py-4">
-          <button
-            onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="focus:outline-none"
-          >
-            {profilePhoto ? (
-              <img
-                src={profilePhoto}
-                className="h-10 w-10 rounded-full border border-teal-500/40 object-cover hover:scale-105 transition"
-              />
-            ) : (
-              <div className="h-10 w-10 rounded-full bg-slate-700" />
-            )}
-          </button>
-
-          {dropdownOpen && (
-            <div className="absolute bottom-16 w-44 bg-[#1E293B] rounded-lg shadow-xl border border-slate-700 text-sm overflow-hidden">
-              <button
-                onClick={() => {
-                  setDropdownOpen(false)
-                  router.push(isDoctor ? "/doctor/settings" : "/patient/settings")
-                }}
-                className="w-full text-left px-4 py-2 hover:bg-slate-800 transition"
-              >
-                Profile
-              </button>
-
-              <button
-                onClick={async () => {
-                  await apiRequest("/auth/logout", undefined, "POST")
-                  router.push("/landing")
-                }}
-                className="w-full text-left px-4 py-2 hover:bg-slate-800 transition text-red-400"
-              >
-                Logout
-              </button>
+              <span className="text-xs font-medium tracking-[-0.01em] text-sidebar-foreground/70">
+                {isDoctor ? "Doctor" : "Profile"}
+              </span>
             </div>
-          )}
-        </div>
-      </SidebarFooter>
+
+            <button
+              onClick={async () => {
+                await apiRequest("/auth/logout", undefined, "POST")
+                router.push("/landing")
+              }}
+              className="text-xs text-red-400 hover:text-red-300"
+            >
+              Logout
+            </button>
+
+          </div>
+        </SidebarFooter>
+
+      </SidebarContent>
     </Sidebar>
   )
 }

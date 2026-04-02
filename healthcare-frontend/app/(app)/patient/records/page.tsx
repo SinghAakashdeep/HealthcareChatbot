@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from "react"
 
+import { AppPage, EmptyPanel, PageHero, SectionHeading, SurfaceCard } from "@/components/app-shell"
+import { apiRequest } from "@/lib/api"
+
 type Prescription = {
   medicine_name: string
   dosage: string
@@ -11,10 +14,16 @@ type Prescription = {
 
 type Visit = {
   visit_id: number
-  visit_date: string
-  diagnosis: string
-  chief_complaint: string
+  visit_date: string | null
+  diagnosis: string | null
+  chief_complaint: string | null
+  treatment_plan: string | null
+  notes: string | null
   prescriptions: Prescription[]
+}
+
+type PatientRecordResponse = {
+  records: Visit[]
 }
 
 export default function PatientRecordsPage() {
@@ -23,88 +32,97 @@ export default function PatientRecordsPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch("http://localhost:8000/patient/records", {
-      credentials: "include",
-    })
-      .then(async (res) => {
-        if (!res.ok) throw new Error("Failed to fetch records")
-        return res.json()
-      })
-      .then((data) => {
-        setRecords(data.records || [])
-      })
-      .catch((err) => {
-        setError(err.message)
-      })
-      .finally(() => {
+    async function loadRecords() {
+      try {
+        const data = await apiRequest<PatientRecordResponse>("/patient/records", undefined, "GET")
+        setRecords(data.records ?? [])
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to fetch records")
+      } finally {
         setLoading(false)
-      })
+      }
+    }
+
+    loadRecords()
   }, [])
 
-  if (loading)
-    return <div className="p-6 text-zinc-600">Loading medical records...</div>
-
-  if (error)
-    return (
-      <div className="p-6 text-red-500">
-        Error loading records: {error}
-      </div>
-    )
-
-  if (records.length === 0)
-    return (
-      <div className="p-6 text-zinc-500">
-        No medical records found.
-      </div>
-    )
-
   return (
-    <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-semibold text-zinc-800">
-        Medical Records
-      </h1>
+    <AppPage>
+      <PageHero
+        eyebrow="Patient Records"
+        title="A more readable medical history."
+        description="Each visit is grouped into a consistent clinical summary so diagnoses, complaints, and prescriptions stay easy to review."
+      />
 
-      {records.map((visit) => (
-        <div
-          key={visit.visit_id}
-          className="rounded-xl bg-white shadow-sm border p-5"
-        >
-          <h2 className="font-semibold text-lg text-zinc-800">
-            Visit on{" "}
-            {new Date(visit.visit_date).toLocaleDateString()}
-          </h2>
+      {loading ? (
+        <SurfaceCard>
+          <p className="text-sm tracking-[-0.01em] text-muted-foreground">Loading medical records...</p>
+        </SurfaceCard>
+      ) : error ? (
+        <SurfaceCard>
+          <p className="text-sm tracking-[-0.01em] text-red-300">Error loading records: {error}</p>
+        </SurfaceCard>
+      ) : records.length === 0 ? (
+        <EmptyPanel
+          title="No medical records found"
+          description="Once consultation notes are added, your timeline will appear here with diagnoses and prescribed medications."
+        />
+      ) : (
+        <div className="space-y-5">
+          <SectionHeading
+            title="Visit timeline"
+            description="Ordered from most recent to older visits so you can quickly scan what changed over time."
+          />
 
-          <div className="mt-2 text-sm text-zinc-700">
-            <p>
-              <strong>Chief Complaint:</strong>{" "}
-              {visit.chief_complaint}
-            </p>
+          {records.map((visit) => (
+            <SurfaceCard key={visit.visit_id}>
+              <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                <div className="space-y-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sky-300/75">
+                    {visit.visit_date ? new Date(visit.visit_date).toLocaleDateString() : "Unknown date"}
+                  </p>
+                  <h2 className="font-heading text-2xl font-semibold tracking-[-0.05em] text-white">
+                    {visit.diagnosis ?? "Visit summary"}
+                  </h2>
+                  <p className="max-w-3xl text-sm leading-7 tracking-[-0.01em] text-slate-300">
+                    {visit.chief_complaint ?? "No chief complaint recorded."}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-border bg-black/10 px-4 py-3 text-sm tracking-[-0.01em] text-slate-400">
+                  Visit ID: {visit.visit_id}
+                </div>
+              </div>
 
-            <p className="mt-1">
-              <strong>Diagnosis:</strong> {visit.diagnosis}
-            </p>
-          </div>
+              <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_0.9fr]">
+                <div className="rounded-2xl border border-border bg-black/10 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Treatment plan</p>
+                  <p className="mt-2 text-sm leading-7 text-slate-300">
+                    {visit.treatment_plan ?? visit.notes ?? "No treatment plan recorded."}
+                  </p>
+                </div>
 
-          {visit.prescriptions?.length > 0 && (
-            <div className="mt-4">
-              <h3 className="font-medium text-zinc-800">
-                Prescriptions
-              </h3>
-              <ul className="mt-2 space-y-1 text-sm text-zinc-700">
-                {visit.prescriptions.map((p, index) => (
-                  <li
-                    key={index}
-                    className="border rounded-md p-2 bg-zinc-50"
-                  >
-                    {p.medicine_name} — {p.dosage} —{" "}
-                    {p.frequency} — {p.duration}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+                <div className="rounded-2xl border border-border bg-black/10 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500">Prescriptions</p>
+                  {visit.prescriptions.length > 0 ? (
+                    <div className="mt-3 space-y-3">
+                      {visit.prescriptions.map((prescription, index) => (
+                        <div key={`${visit.visit_id}-${index}`} className="rounded-xl border border-border bg-background/50 p-3">
+                          <p className="font-medium text-white">{prescription.medicine_name}</p>
+                          <p className="mt-1 text-sm leading-6 text-slate-400">
+                            {prescription.dosage} · {prescription.frequency} · {prescription.duration}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-sm leading-6 text-slate-400">No prescriptions were added for this visit.</p>
+                  )}
+                </div>
+              </div>
+            </SurfaceCard>
+          ))}
         </div>
-      ))}
-    </div>
+      )}
+    </AppPage>
   )
 }

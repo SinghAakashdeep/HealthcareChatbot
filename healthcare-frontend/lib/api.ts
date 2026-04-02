@@ -1,17 +1,18 @@
-const BASE_URL = "http://localhost:8000"
+const BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000"
 
-export async function apiRequest(
+export async function apiRequest<TResponse>(
   path: string,
-  data?: any,
-  method: string = "POST"
-) {
+  data?: unknown,
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE" = "POST"
+): Promise<TResponse> {
   const res = await fetch(`${BASE_URL}${path}`, {
     method,
     headers: {
       "Content-Type": "application/json",
     },
     credentials: "include",
-    body: data ? JSON.stringify(data) : undefined,
+    body: method === "GET" || data === undefined ? undefined : JSON.stringify(data),
   })
 
   if (!res.ok) {
@@ -21,3 +22,5 @@ export async function apiRequest(
 
   return res.json()
 }
+
+export { BASE_URL }

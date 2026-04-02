@@ -1,241 +1,218 @@
 "use client"
 
+import { ShieldCheck, Stethoscope, Activity, ArrowRight } from "lucide-react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import dynamic from "next/dynamic"
 
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { apiRequest } from "@/lib/api"
 
-const Silk = dynamic(() => import("../../../components/Silk"), {
-  ssr: false,
-})
+type AuthMode = "login" | "register"
+type Role = "doctor" | "patient"
 
-export default function HomePage() {
+type LoginResponse = {
+  message: string
+  role: Role
+}
+
+const highlights = [
+  {
+    icon: ShieldCheck,
+    title: "Secure patient journeys",
+    description: "Patient records, triage guidance, and settings all live in one calm clinical workspace.",
+  },
+  {
+    icon: Stethoscope,
+    title: "Built for real care flows",
+    description: "Visits, vitals, prescriptions, and messaging are structured around outpatient follow-up.",
+  },
+  {
+    icon: Activity,
+    title: "Fast, lighter interface",
+    description: "A simpler visual system keeps the frontend focused, faster, and easier to maintain.",
+  },
+]
+
+export default function LandingPage() {
   const router = useRouter()
 
-  const [mode, setMode] = useState<"login" | "register">("login")
-  const [role, setRole] = useState<"doctor" | "patient">("patient")
-
+  const [mode, setMode] = useState<AuthMode>("login")
+  const [role, setRole] = useState<Role>("patient")
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-
     setLoading(true)
     setError("")
 
     try {
       if (mode === "login") {
-        const res = await apiRequest("/auth/login", {
-          email,
-          password,
-        })
-
-        if (res.role === "doctor") {
-          router.push("/doctor")
-        } else {
-          router.push("/patient")
-        }
-
+        const res = await apiRequest<LoginResponse>("/auth/login", { email, password }, "POST")
+        router.push(res.role === "doctor" ? "/doctor" : "/patient")
       } else {
-        await apiRequest("/auth/register", {
-          name,
-          email,
-          password,
-          role, // ✅ selected role
-        })
-
-        alert("Registration successful. Please login.")
-
+        await apiRequest<{ message: string }>(
+          "/auth/register",
+          { name, email, password, role },
+          "POST"
+        )
         setMode("login")
         setPassword("")
       }
-
-    } catch (err: any) {
-      setError(err.message || "Invalid credentials or server error")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.")
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <main className="h-screen w-screen grid grid-cols-1 md:grid-cols-2 overflow-hidden">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.2),_transparent_28%),radial-gradient(circle_at_bottom_right,_rgba(14,165,233,0.16),_transparent_28%),#071018] text-white">
+      <div className="mx-auto grid min-h-screen w-full max-w-7xl gap-10 px-6 py-8 lg:grid-cols-[1.15fr_0.85fr] lg:px-8">
+        <section className="flex flex-col justify-between">
+          <div className="space-y-10">
+            <div className="inline-flex w-fit items-center rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-sky-200/85">
+              Healthcare Assistant Platform
+            </div>
 
-      {/* LEFT: Silk Background */}
-      <section className="relative bg-gray-200/30">
+            <div className="max-w-3xl space-y-5">
+              <h1 className="font-heading text-5xl font-semibold leading-[1.02] tracking-[-0.07em] text-white md:text-7xl">
+                A cleaner patient experience for modern clinics.
+              </h1>
+              <p className="max-w-2xl text-lg leading-8 tracking-[-0.02em] text-slate-300">
+                One interface for records, guidance, appointments, and clinician workflows. Designed to feel calm,
+                trustworthy, and lightweight from the first screen onward.
+              </p>
+            </div>
 
-
-<Silk
-  speed={3}
-  scale={1.1}
-  color="#32cee3"       // Tailwind gray-400
-  noiseIntensity={0.8} // Softer
-  rotation={0}
-/>
-
-<div className="absolute inset-0 bg-gradient-to-br from-gray-100/60 to-gray-300/40" />
-
-        {/* Overlay */}
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-6">
-          <div className="text-center space-y-4">
-
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white drop-shadow-lg">
-              Welcome
-            </h1>
-
-            <p className="text-xl md:text-2xl text-white/90 drop-shadow">
-              Secure Healthcare Assistant
-            </p>
-
-          </div>
-        </div>
-
-      </section>
-
-      {/* RIGHT: Auth Panel */}
-<section className="bg-gray-100 flex items-center justify-center">
-
-<div className="w-full max-w-md p-8 rounded-xl bg-white/90 backdrop-blur border border-gray-200 shadow-xl">
-
-          {/* Header */}
-          <div className="text-center mb-6">
-
-            <h2 className="text-2xl font-semibold">
-              {mode === "login" ? "Sign In" : "Create Account"}
-            </h2>
-
-            <p className="text-muted-foreground text-sm mt-1">
-              Access your healthcare dashboard
-            </p>
-
+            <div className="grid gap-4 md:grid-cols-3">
+              {highlights.map((item) => (
+                <article
+                  key={item.title}
+                  className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 shadow-[0_18px_50px_rgba(0,0,0,0.22)] backdrop-blur-sm"
+                >
+                  <item.icon className="h-6 w-6 text-sky-300" />
+                  <h2 className="mt-4 font-heading text-xl font-semibold tracking-[-0.04em] text-white">
+                    {item.title}
+                  </h2>
+                  <p className="mt-2 text-sm leading-6 tracking-[-0.01em] text-slate-300">{item.description}</p>
+                </article>
+              ))}
+            </div>
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="mt-10 grid gap-4 md:grid-cols-2">
+            <div className="rounded-3xl border border-white/10 bg-slate-950/40 p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-200/75">Demo Patient</p>
+              <p className="mt-3 font-heading text-xl tracking-[-0.04em] text-white">`aakash@gmail.com`</p>
+              <p className="mt-1 text-sm text-slate-400">Realistic visit history, prescriptions, and assistant chat.</p>
+            </div>
+            <div className="rounded-3xl border border-white/10 bg-slate-950/40 p-5">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-200/75">Demo Doctors</p>
+              <p className="mt-3 font-heading text-xl tracking-[-0.04em] text-white">Password: `Health@123`</p>
+              <p className="mt-1 text-sm text-slate-400">Use any seeded doctor account to enter the clinician shell.</p>
+            </div>
+          </div>
+        </section>
 
-            {/* Role Selector (Register Only) */}
-            {mode === "register" && (
-              <div className="flex gap-4">
+        <section className="flex items-center justify-center">
+          <div className="w-full max-w-md rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.94),rgba(10,15,24,0.98))] p-7 shadow-[0_24px_90px_rgba(0,0,0,0.4)] backdrop-blur-xl">
+            <div className="space-y-2">
+              <p className="font-heading text-sm font-semibold uppercase tracking-[0.16em] text-sky-300/80">
+                {mode === "login" ? "Sign In" : "Create account"}
+              </p>
+              <h2 className="font-heading text-3xl font-semibold tracking-[-0.05em] text-white">
+                {mode === "login" ? "Welcome back" : "Set up your workspace"}
+              </h2>
+              <p className="text-sm leading-6 tracking-[-0.01em] text-slate-400">
+                {mode === "login"
+                  ? "Enter your account details to continue into the care platform."
+                  : "Register as a patient or doctor and start using the platform immediately."}
+              </p>
+            </div>
 
-                <button
-                  type="button"
-                  onClick={() => setRole("patient")}
-                  className={`flex-1 py-2 rounded-lg border font-medium transition ${
-                    role === "patient"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-background"
-                  }`}
-                >
-                  Patient
-                </button>
+            <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+              {mode === "register" ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {(["patient", "doctor"] as Role[]).map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => setRole(option)}
+                      className={`rounded-2xl border px-4 py-3 text-sm font-semibold tracking-[-0.01em] transition ${
+                        role === option
+                          ? "border-sky-400/50 bg-sky-400/10 text-white"
+                          : "border-white/10 bg-white/[0.03] text-slate-300 hover:border-white/20"
+                      }`}
+                    >
+                      {option === "patient" ? "Patient" : "Doctor"}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
 
-                <button
-                  type="button"
-                  onClick={() => setRole("doctor")}
-                  className={`flex-1 py-2 rounded-lg border font-medium transition ${
-                    role === "doctor"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-background"
-                  }`}
-                >
-                  Doctor
-                </button>
+              {mode === "register" ? (
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Full name"
+                  className="h-12 rounded-2xl border-white/10 bg-white/[0.04] px-4 text-white placeholder:text-slate-500"
+                  required
+                />
+              ) : null}
 
-              </div>
-            )}
-
-            {/* Name (Register Only) */}
-            {mode === "register" && (
-              <input
-                type="text"
-                placeholder="Full Name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Email address"
+                className="h-12 rounded-2xl border-white/10 bg-white/[0.04] px-4 text-white placeholder:text-slate-500"
                 required
-                className="w-full px-4 py-3 rounded-lg border bg-background focus:ring-2 focus:ring-primary outline-none"
               />
-            )}
 
-            {/* Email */}
-            <input
-              type="email"
-              placeholder="Email Address"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="w-full px-4 py-3 rounded-lg border bg-background focus:ring-2 focus:ring-primary outline-none"
-            />
+              <Input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Password"
+                className="h-12 rounded-2xl border-white/10 bg-white/[0.04] px-4 text-white placeholder:text-slate-500"
+                required
+              />
 
-            {/* Password */}
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full px-4 py-3 rounded-lg border bg-background focus:ring-2 focus:ring-primary outline-none"
-            />
+              {error ? (
+                <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm tracking-[-0.01em] text-red-200">
+                  {error}
+                </div>
+              ) : null}
 
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 rounded-lg bg-primary text-primary-foreground font-medium hover:opacity-90 transition disabled:opacity-50"
-            >
-              {loading
-                ? "Please wait..."
-                : mode === "login"
-                ? "Sign In"
-                : "Register"}
-            </button>
+              <Button
+                type="submit"
+                size="lg"
+                disabled={loading}
+                className="h-12 w-full rounded-2xl font-heading text-sm font-semibold tracking-[-0.02em]"
+              >
+                {loading ? "Please wait..." : mode === "login" ? "Enter platform" : "Create account"}
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            </form>
 
-          </form>
-
-          {/* Error */}
-          {error && (
-            <p className="mt-4 text-sm text-red-500 text-center">
-              {error}
-            </p>
-          )}
-
-          {/* Switch Mode */}
-          <div className="mt-6 text-center text-sm">
-
-            {mode === "login" ? (
-              <>
-                Don’t have an account?{" "}
-                <button
-                  type="button"
-                  onClick={() => setMode("register")}
-                  className="text-primary font-medium hover:underline"
-                >
-                  Register
-                </button>
-              </>
-            ) : (
-              <>
-                Already have an account?{" "}
-                <button
-                  type="button"
-                  onClick={() => setMode("login")}
-                  className="text-primary font-medium hover:underline"
-                >
-                  Sign In
-                </button>
-              </>
-            )}
-
+            <div className="mt-6 text-sm tracking-[-0.01em] text-slate-400">
+              {mode === "login" ? "Need an account?" : "Already registered?"}{" "}
+              <button
+                type="button"
+                onClick={() => setMode(mode === "login" ? "register" : "login")}
+                className="font-semibold text-sky-300 hover:text-sky-200"
+              >
+                {mode === "login" ? "Create one" : "Sign in"}
+              </button>
+            </div>
           </div>
-
-        </div>
-
-      </section>
-
+        </section>
+      </div>
     </main>
   )
 }

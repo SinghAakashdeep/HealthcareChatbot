@@ -9,29 +9,13 @@ export default function AppLayout({
 }) {
   return (
     <SidebarProvider>
-
-      <div className="flex min-h-screen w-full bg-zinc-100">
-
-        {/* Sidebar */}
+      <div className="flex min-h-screen w-full bg-background">
         <AppSidebar />
-
-        {/* Main Area */}
         <div className="flex flex-1 flex-col">
-
-          {/* Top Bar */}
           <Topbar />
-
-          {/* Page Content */}
-          <main className="flex-1 p-6">
-            <div className="mx-auto max-w-7xl">
-              {children}
-            </div>
-          </main>
-
+          <main className="flex-1 overflow-y-auto bg-background">{children}</main>
         </div>
-
       </div>
-
     </SidebarProvider>
   )
 }

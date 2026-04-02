@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
-from models import User
+from models import User, Patient
 from schemas import RegisterRequest, LoginRequest
 from auth import hash_password, verify_password, create_access_token
 
@@ -27,6 +27,11 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
     db.add(user)
     db.commit()
     db.refresh(user)
+
+    if user.role == "patient":
+        patient = Patient(user_id=user.id)
+        db.add(patient)
+        db.commit()
 
     return {"message": "User registered successfully"}
 
@@ -57,3 +62,9 @@ def login(data: LoginRequest, response: Response, db: Session = Depends(get_db))
         "message": "Login successful",
         "role": user.role
     }
+
+
+@router.post("/logout")
+def logout(response: Response):
+    response.delete_cookie(key="access_token")
+    return {"message": "Logout successful"}

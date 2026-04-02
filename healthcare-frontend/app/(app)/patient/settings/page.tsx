@@ -1,10 +1,26 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { apiRequest } from "@/lib/api"
+import { ChangeEvent, useEffect, useState } from "react"
+
+import { AppPage, PageHero, SectionHeading, SurfaceCard } from "@/components/app-shell"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { apiRequest, BASE_URL } from "@/lib/api"
+
+type PatientSettings = {
+  name: string
+  email: string
+  profile_photo: string | null
+  height_cm: number | null
+  weight_kg: number | null
+  allergies: string | null
+  chronic_conditions: string | null
+  emergency_contact_name: string | null
+  emergency_contact_phone: string | null
+}
 
 export default function PatientSettingsPage() {
-  const [form, setForm] = useState<any>(null)
+  const [form, setForm] = useState<PatientSettings | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -12,10 +28,8 @@ export default function PatientSettingsPage() {
   useEffect(() => {
     async function fetchSettings() {
       try {
-        const res = await apiRequest("/patient/settings", undefined, "GET")
+        const res = await apiRequest<PatientSettings>("/patient/settings", undefined, "GET")
         setForm(res)
-      } catch (err) {
-        console.error(err)
       } finally {
         setLoading(false)
       }
@@ -24,24 +38,22 @@ export default function PatientSettingsPage() {
     fetchSettings()
   }, [])
 
-  function handleChange(e: any) {
-    const { name, value } = e.target
-    setForm((prev: any) => ({
-      ...prev,
-      [name]: value,
-    }))
+  function updateField<K extends keyof PatientSettings>(key: K, value: PatientSettings[K]) {
+    setForm((prev) => (prev ? { ...prev, [key]: value } : prev))
   }
 
   async function handleSave() {
+    if (!form) return
     setSaving(true)
+
     try {
       await apiRequest(
         "/patient/settings",
         {
           name: form.name,
           profile_photo: form.profile_photo,
-          height_cm: form.height_cm ? Number(form.height_cm) : null,
-          weight_kg: form.weight_kg ? Number(form.weight_kg) : null,
+          height_cm: form.height_cm,
+          weight_kg: form.weight_kg,
           allergies: form.allergies,
           chronic_conditions: form.chronic_conditions,
           emergency_contact_name: form.emergency_contact_name,
@@ -49,178 +61,184 @@ export default function PatientSettingsPage() {
         },
         "PUT"
       )
-
-      alert("Settings updated successfully")
-    } catch (err) {
-      console.error(err)
-      alert("Update failed")
     } finally {
       setSaving(false)
     }
   }
 
-  async function handleImageUpload(e: any) {
+  async function handleImageUpload(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    if (!file) return
+    if (!file || !form) return
 
     setUploading(true)
-
     const formData = new FormData()
     formData.append("file", file)
 
     try {
-      const res = await fetch(
-        "http://localhost:8000/patient/upload-profile-photo",
-        {
-          method: "POST",
-          credentials: "include",
-          body: formData,
-        }
-      )
+      const res = await fetch(`${BASE_URL}/patient/upload-profile-photo`, {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      })
 
       if (!res.ok) throw new Error("Upload failed")
 
-      const data = await res.json()
-
-      setForm((prev: any) => ({
-        ...prev,
-        profile_photo: data.profile_photo,
-      }))
-    } catch (err) {
-      console.error(err)
-      alert("Image upload failed")
+      const data = (await res.json()) as { profile_photo: string }
+      updateField("profile_photo", data.profile_photo)
     } finally {
       setUploading(false)
     }
   }
 
-  if (loading) return <div className="p-6">Loading...</div>
-  if (!form) return <div className="p-6">Error loading settings</div>
+  if (loading || !form) {
+    return (
+      <AppPage>
+        <SurfaceCard>
+          <p className="text-sm tracking-[-0.01em] text-muted-foreground">Loading settings...</p>
+        </SurfaceCard>
+      </AppPage>
+    )
+  }
 
   return (
-    <div className="p-6 max-w-2xl space-y-6">
-      <h1 className="text-2xl font-semibold">Settings</h1>
+    <AppPage>
+      <PageHero
+        eyebrow="Profile"
+        title="Keep your health profile current."
+        description="These details shape how the assistant and care records appear across the app, so the page now prioritizes clarity over clutter."
+        actions={
+          <Button onClick={handleSave} disabled={saving} className="rounded-2xl font-heading">
+            {saving ? "Saving..." : "Save Changes"}
+          </Button>
+        }
+      />
 
-      {/* Profile Photo */}
-      <div className="flex items-center gap-6">
-        {form.profile_photo ? (
-          <img
-            src={form.profile_photo}
-            alt="Profile"
-            className="w-24 h-24 rounded-full object-cover border"
-          />
-        ) : (
-          <div className="w-24 h-24 rounded-full bg-gray-300" />
-        )}
+      <div className="grid gap-6 xl:grid-cols-[0.7fr_1.3fr]">
+        <SurfaceCard>
+          <SectionHeading title="Profile photo" description="This image appears in your workspace navigation." />
+          <div className="mt-6 flex flex-col items-start gap-4">
+            {form.profile_photo ? (
+              <img
+                src={form.profile_photo}
+                alt="Profile"
+                className="h-28 w-28 rounded-3xl border border-border object-cover"
+              />
+            ) : (
+              <div className="flex h-28 w-28 items-center justify-center rounded-3xl border border-border bg-black/15 font-heading text-2xl text-slate-300">
+                {form.name.charAt(0).toUpperCase()}
+              </div>
+            )}
 
-        <div>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleImageUpload}
+            <label className="inline-flex cursor-pointer items-center rounded-2xl border border-border bg-black/10 px-4 py-3 text-sm font-medium tracking-[-0.01em] text-slate-300 transition hover:border-slate-500">
+              <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+              {uploading ? "Uploading..." : "Upload new photo"}
+            </label>
+          </div>
+        </SurfaceCard>
+
+        <SurfaceCard>
+          <SectionHeading
+            title="Personal and medical details"
+            description="All the fields that matter for continuity of care, arranged into one consistent form."
           />
-          {uploading && <p className="text-sm text-gray-500">Uploading...</p>}
-        </div>
+
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            <Field label="Name">
+              <Input
+                value={form.name}
+                onChange={(e) => updateField("name", e.target.value)}
+                className="h-11 rounded-2xl"
+              />
+            </Field>
+
+            <Field label="Email">
+              <Input value={form.email} disabled className="h-11 rounded-2xl opacity-70" />
+            </Field>
+
+            <Field label="Height (cm)">
+              <Input
+                type="number"
+                value={form.height_cm ?? ""}
+                onChange={(e) => updateField("height_cm", e.target.value ? Number(e.target.value) : null)}
+                className="h-11 rounded-2xl"
+              />
+            </Field>
+
+            <Field label="Weight (kg)">
+              <Input
+                type="number"
+                value={form.weight_kg ?? ""}
+                onChange={(e) => updateField("weight_kg", e.target.value ? Number(e.target.value) : null)}
+                className="h-11 rounded-2xl"
+              />
+            </Field>
+
+            <Field label="Emergency Contact Name">
+              <Input
+                value={form.emergency_contact_name ?? ""}
+                onChange={(e) => updateField("emergency_contact_name", e.target.value)}
+                className="h-11 rounded-2xl"
+              />
+            </Field>
+
+            <Field label="Emergency Contact Phone">
+              <Input
+                value={form.emergency_contact_phone ?? ""}
+                onChange={(e) => updateField("emergency_contact_phone", e.target.value)}
+                className="h-11 rounded-2xl"
+              />
+            </Field>
+
+            <TextField
+              label="Allergies"
+              value={form.allergies ?? ""}
+              onChange={(e) => updateField("allergies", e.target.value)}
+            />
+
+            <TextField
+              label="Chronic Conditions"
+              value={form.chronic_conditions ?? ""}
+              onChange={(e) => updateField("chronic_conditions", e.target.value)}
+            />
+          </div>
+        </SurfaceCard>
       </div>
+    </AppPage>
+  )
+}
 
-      <div className="space-y-4">
+function Field({
+  label,
+  children,
+}: {
+  label: string
+  children: React.ReactNode
+}) {
+  return (
+    <label className="space-y-2">
+      <span className="text-sm font-medium tracking-[-0.01em] text-slate-300">{label}</span>
+      {children}
+    </label>
+  )
+}
 
-        <div>
-          <label className="block text-sm font-medium">Name</label>
-          <input
-            name="name"
-            value={form.name || ""}
-            onChange={handleChange}
-            className="w-full border rounded p-2"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium">Email</label>
-          <input
-            value={form.email || ""}
-            disabled
-            className="w-full border rounded p-2 bg-gray-100"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium">Height (cm)</label>
-          <input
-            name="height_cm"
-            type="number"
-            step="0.1"
-            value={form.height_cm || ""}
-            onChange={handleChange}
-            className="w-full border rounded p-2"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium">Weight (kg)</label>
-          <input
-            name="weight_kg"
-            type="number"
-            step="0.1"
-            value={form.weight_kg || ""}
-            onChange={handleChange}
-            className="w-full border rounded p-2"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium">Allergies</label>
-          <textarea
-            name="allergies"
-            value={form.allergies || ""}
-            onChange={handleChange}
-            className="w-full border rounded p-2"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium">Chronic Conditions</label>
-          <textarea
-            name="chronic_conditions"
-            value={form.chronic_conditions || ""}
-            onChange={handleChange}
-            className="w-full border rounded p-2"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium">
-            Emergency Contact Name
-          </label>
-          <input
-            name="emergency_contact_name"
-            value={form.emergency_contact_name || ""}
-            onChange={handleChange}
-            className="w-full border rounded p-2"
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium">
-            Emergency Contact Phone
-          </label>
-          <input
-            name="emergency_contact_phone"
-            value={form.emergency_contact_phone || ""}
-            onChange={handleChange}
-            className="w-full border rounded p-2"
-          />
-        </div>
-
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="bg-black text-white px-4 py-2 rounded"
-        >
-          {saving ? "Saving..." : "Save Changes"}
-        </button>
-
-      </div>
-    </div>
+function TextField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string
+  value: string
+  onChange: (e: ChangeEvent<HTMLTextAreaElement>) => void
+}) {
+  return (
+    <label className="space-y-2 md:col-span-2">
+      <span className="text-sm font-medium tracking-[-0.01em] text-slate-300">{label}</span>
+      <textarea
+        value={value}
+        onChange={onChange}
+        className="min-h-28 w-full rounded-2xl border border-input bg-transparent px-4 py-3 text-sm leading-7 tracking-[-0.01em] text-white outline-none transition focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
+      />
+    </label>
   )
 }
